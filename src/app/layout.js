@@ -1,18 +1,20 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/shared/Navbar";
 import { Providers } from "./providers";
+import Footer from "@/components/shared/Footer";
 
 
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const jakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-jakarta", // Body text variable
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const outfit = Outfit({
   subsets: ["latin"],
+  weight: ["700", "800", "900"],
+  variable: "--font-outfit", // Heading text variable
 });
 
 export const metadata = {
@@ -25,13 +27,14 @@ export default function RootLayout({ children }) {
     <html
     
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={` h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className={`${jakartaSans.variable} ${outfit.variable} min-h-full flex flex-col bg-background text-foreground`}>
         <Providers>
           <Navbar/>
         <main> {children}</main>
+        <Footer/>
         </Providers>
         
        

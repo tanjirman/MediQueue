@@ -7,6 +7,7 @@ export default function Home() {
     <div >
       
       <h2>homepage</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Iure, magni?</p>
     </div>
   );
 }

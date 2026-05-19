@@ -54,7 +54,7 @@ export default function Navbar() {
         <div className="flex gap-6">
           <ThemeSwitcher />
           <div className="flex gap-3">
-            <Link href="/signUp">
+            <Link href="/signup">
               <Button className="bg-linear-to-br from-cyan-500 to-blue-600 text-white hover:bg-cyan-700 rounded-2xl px-6 transition-all">
                 Sign Up
               </Button>
