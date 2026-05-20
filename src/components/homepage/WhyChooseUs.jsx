@@ -1,6 +1,7 @@
 "use client";
 
 import CountUp from "react-countup";
+import { useInView } from "react-intersection-observer";
 import {
   FaChalkboardTeacher,
   FaClock,
@@ -43,8 +44,12 @@ const features = [
 ];
 
 export default function WhyChooseUs() {
+    const { ref, inView } = useInView({
+  triggerOnce: true,
+  threshold: 0.3,
+});
   return (
-    <section className="py-24 bg-gradient-to-b from-white to-cyan-50 dark:from-black dark:to-slate-950">
+    <section className="py-24 bg-linear-to-b from-white to-cyan-50 dark:from-black dark:to-slate-950">
 
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
 
@@ -79,7 +84,7 @@ export default function WhyChooseUs() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-500" />
 
               {/* ICON */}
-              <div className="relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-2xl flex items-center justify-center shadow-lg">
+              <div className="relative z-10 w-16 h-16 rounded-2xl bg-linear-to-br from-cyan-500 to-blue-600 text-white text-2xl flex items-center justify-center shadow-lg">
                 {feature.icon}
               </div>
 
@@ -94,22 +99,31 @@ export default function WhyChooseUs() {
               </p>
 
               {/* HOVER BAR */}
-              <div className="relative z-10 mt-8 w-0 group-hover:w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full transition-all duration-500" />
+              <div className="relative z-10 mt-8 w-0 group-hover:w-full h-1 bg-linear-to-r from-cyan-500 to-blue-600 rounded-full transition-all duration-500" />
             </div>
           ))}
         </div>
 
         {/* BOTTOM STATS */}
-<div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-6">
+<div
+  ref={ref}
+  className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-6"
+>
 
+  {/* CARD 1 */}
   <div className="rounded-3xl bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 p-8 text-center shadow-lg hover:-translate-y-2 transition-all duration-300">
-    
+
     <h3 className="text-4xl font-black text-cyan-500">
-      <CountUp
-        end={500}
-        duration={4}
-      />
-      +
+
+      {inView && (
+        <>
+          <CountUp
+            end={500}
+            duration={3}
+          />
+          +
+        </>
+      )}
     </h3>
 
     <p className="mt-2 text-default-600">
@@ -117,14 +131,20 @@ export default function WhyChooseUs() {
     </p>
   </div>
 
+  {/* CARD 2 */}
   <div className="rounded-3xl bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 p-8 text-center shadow-lg hover:-translate-y-2 transition-all duration-300">
-    
+
     <h3 className="text-4xl font-black text-cyan-500">
-      <CountUp
-        end={10000}
-        duration={4}
-      />
-      +
+
+      {inView && (
+        <>
+          <CountUp
+            end={10000}
+            duration={3}
+          />
+          +
+        </>
+      )}
     </h3>
 
     <p className="mt-2 text-default-600">
@@ -132,14 +152,20 @@ export default function WhyChooseUs() {
     </p>
   </div>
 
+  {/* CARD 3 */}
   <div className="rounded-3xl bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 p-8 text-center shadow-lg hover:-translate-y-2 transition-all duration-300">
-    
+
     <h3 className="text-4xl font-black text-cyan-500">
-      <CountUp
-        end={98}
-        duration={4}
-      />
-      %
+
+      {inView && (
+        <>
+          <CountUp
+            end={98}
+            duration={3}
+          />
+          %
+        </>
+      )}
     </h3>
 
     <p className="mt-2 text-default-600">
@@ -147,14 +173,20 @@ export default function WhyChooseUs() {
     </p>
   </div>
 
+  {/* CARD 4 */}
   <div className="rounded-3xl bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 p-8 text-center shadow-lg hover:-translate-y-2 transition-all duration-300">
-    
+
     <h3 className="text-4xl font-black text-cyan-500">
-      <CountUp
-        end={24}
-        duration={4}
-      />
-      /7
+
+      {inView && (
+        <>
+          <CountUp
+            end={24}
+            duration={3}
+          />
+          /7
+        </>
+      )}
     </h3>
 
     <p className="mt-2 text-default-600">
