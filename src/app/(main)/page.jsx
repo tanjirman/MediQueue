@@ -1,4 +1,5 @@
 
+import AvailableTutors from "@/components/homepage/AvailableTutors";
 import Banner from "@/components/homepage/Banner";
 import LearningProcess from "@/components/homepage/LearningProcess";
 import WhyChooseUs from "@/components/homepage/WhyChooseUs";
@@ -10,7 +11,7 @@ export default function Home() {
     <div >
       
       <Banner/>
-      
+      <AvailableTutors/>
       <LearningProcess/>
       <WhyChooseUs/>
     </div>
