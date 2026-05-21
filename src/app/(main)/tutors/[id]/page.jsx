@@ -59,22 +59,32 @@ export default function TutorDetailsPage({ params: paramsPromise }) {
 
   // --- REQUIREMENT RULES EVALUATION ---
   const currentDate = new Date();
-  const sessionStartDate = new Date(tutor.startDate);
+  // Using tutor.sessionDate to match your server's schema property
+  const sessionStartDate = new Date(tutor.sessionDate || tutor.startDate);
   
-  // 1. Session Date Restriction Check
+  // 1. Session Date Restriction Check (Today must be >= the release/start date)
   const isBookingDateValid = currentDate >= sessionStartDate;
 
   // 2. Total Slot Availability Check
   const isSlotsAvailable = tutor.totalSlot > 0;
 
+  // 3. Overall validation flag checking both conditions
+  const isBookingAllowed = isSlotsAvailable && isBookingDateValid;
+
   const handleBookingTrigger = () => {
-    // If slots are empty, block booking entirely
+    // Check condition 1: Slot check guard
     if (!isSlotsAvailable) {
       toast.error("This session is fully booked. You can't join at the moment.");
       return;
     }
     
-    // Open the HeroUI dynamic form modal
+    // Check condition 2: Date threshold guard
+    if (!isBookingDateValid) {
+      toast.error("Booking is not available yet for this tutor.");
+      return;
+    }
+    
+    // Open the HeroUI dynamic form modal if all rules pass successfully
     modalState.open(); 
   };
 
@@ -153,7 +163,7 @@ export default function TutorDetailsPage({ params: paramsPromise }) {
               {/* Alert 1: Show message if date is earlier than session start date */}
               {!isBookingDateValid && isSlotsAvailable && (
                 <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-sm font-semibold rounded-2xl text-center">
-                  ⚠️ Booking is not available yet for this tutor. (Starts on: {tutor.startDate})
+                  ⚠️ Booking is not available yet for this tutor. (Starts on: {tutor.sessionDate || tutor.startDate})
                 </div>
               )}
 
@@ -167,15 +177,19 @@ export default function TutorDetailsPage({ params: paramsPromise }) {
               {/* BOOK SESSION ACTION BUTTON */}
               <Button
                 onClick={handleBookingTrigger}
-                // Button is active if slots are available!
-                disabled={!isSlotsAvailable}
+                // ✅ FIXED: Button is disabled if bookings are not allowed yet
+                disabled={!isBookingAllowed}
                 className={`w-full h-14 rounded-2xl text-lg font-bold text-white shadow-lg transition-all ${
-                  isSlotsAvailable
+                  isBookingAllowed
                     ? "bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 cursor-pointer"
                     : "bg-default-300 dark:bg-neutral-800 cursor-not-allowed opacity-50"
                 }`}
               >
-                Book Session Now
+                {!isSlotsAvailable 
+                  ? "Fully Booked" 
+                  : !isBookingDateValid 
+                  ? "Booking Unavailable" 
+                  : "Book Session Now"}
               </Button>
             </div>
           </div>

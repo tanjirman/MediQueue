@@ -4,23 +4,29 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { Button, Input, Label, Modal, TextField } from "@heroui/react";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import { FaUser, FaPhone, FaUserTie, FaEnvelope, FaFingerprint } from "react-icons/fa";
 
 export default function BookingModal({ state, tutor, setTutor, user }) {
   const [submitting, setSubmitting] = useState(false);
   const { register, handleSubmit, reset } = useForm();
+  const router = useRouter();
 
   const handleFormSubmit = async (data) => {
     setSubmitting(true);
 
+    // ✅ FIXED: Expanded payload properties to match Express and My Booking card layout expectations
     const bookingPayload = {
       studentName: user.name,
       studentEmail: user.email,
       phone: data.phone,
-      tutorId: tutor._id,
+      tutorId: tutor._id, 
       tutorName: tutor.name,
-      bookStatus: "Booked", 
-      timestamp: new Date().toISOString(),
+      tutorImage: tutor.image,       // Added to render image thumbnails on booking screens
+      price: tutor.price,             // Added to display price details in student tables
+      specialty: tutor.specialty,     // Added to display tutor category tags
+      bookingStatus: "Booked",        // Changed from bookStatus to match backend schema updates
+      bookingDate: new Date(),
     };
 
     try {
@@ -32,9 +38,12 @@ export default function BookingModal({ state, tutor, setTutor, user }) {
         body: JSON.stringify(bookingPayload),
       });
 
-      if (response.ok) {
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success) {
         toast.success("Session Scheduled Successfully! 🎉");
         
+        // Optimistically update the local state slots count down by 1
         setTutor((prev) => ({
           ...prev,
           totalSlot: Math.max(0, prev.totalSlot - 1),
@@ -42,9 +51,11 @@ export default function BookingModal({ state, tutor, setTutor, user }) {
 
         reset();
         state.close(); 
+        
+        // ✅ REDIRECT: Seamlessly push the student to view their newly saved data row
+        router.push("/my-booking");
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || "Failed to finalize scheduling.");
+        toast.error(responseData.message || "Failed to finalize scheduling.");
       }
     } catch (error) {
       console.error(error);
@@ -73,7 +84,7 @@ export default function BookingModal({ state, tutor, setTutor, user }) {
             <Modal.Body className="py-4">
               <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 text-left">
                 
-                {/* 1. Student Name Field (Changed defaultValue to value) */}
+                {/* 1. Student Name Field */}
                 <TextField className="w-full opacity-75" name="studentName">
                   <Label className="text-xs font-bold text-default-500 uppercase">Student Name</Label>
                   <div className="relative mt-1">
@@ -86,7 +97,7 @@ export default function BookingModal({ state, tutor, setTutor, user }) {
                   </div>
                 </TextField>
 
-                {/* 2. Student Email Field (Changed defaultValue to value) */}
+                {/* 2. Student Email Field */}
                 <TextField className="w-full opacity-75" name="studentEmail">
                   <Label className="text-xs font-bold text-default-500 uppercase">Student Email Address</Label>
                   <div className="relative mt-1">
@@ -99,7 +110,7 @@ export default function BookingModal({ state, tutor, setTutor, user }) {
                   </div>
                 </TextField>
 
-                {/* 3. Tutor Name Field (Changed defaultValue to value) */}
+                {/* 3. Tutor Name Field */}
                 <TextField className="w-full opacity-75" name="tutorName">
                   <Label className="text-xs font-bold text-default-500 uppercase">Selected Tutor</Label>
                   <div className="relative mt-1">
@@ -112,7 +123,7 @@ export default function BookingModal({ state, tutor, setTutor, user }) {
                   </div>
                 </TextField>
 
-                {/* 4. Tutor ID Field (Changed defaultValue to value) */}
+                {/* 4. Tutor ID Field */}
                 <TextField className="w-full opacity-75" name="tutorId">
                   <Label className="text-xs font-bold text-default-500 uppercase">Tutor Reference Key ID</Label>
                   <div className="relative mt-1">
@@ -125,7 +136,7 @@ export default function BookingModal({ state, tutor, setTutor, user }) {
                   </div>
                 </TextField>
 
-                {/* 5. Contact Phone Number Field (Stays uncontrolled for react-hook-form entry) */}
+                {/* 5. Contact Phone Number Field */}
                 <TextField className="w-full" name="phone">
                   <Label className="text-xs font-bold text-black dark:text-white uppercase">Contact Phone Number</Label>
                   <div className="relative mt-1">

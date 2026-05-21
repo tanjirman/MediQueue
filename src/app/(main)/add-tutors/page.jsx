@@ -2,8 +2,8 @@
 
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // Imported for automatic redirection
-import { Button } from "@heroui/react";
+import { useRouter } from "next/navigation";
+import { Button, Spinner } from "@heroui/react";
 import {
   FaUserGraduate,
   FaImage,
@@ -16,9 +16,15 @@ import {
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 
+// ✅ Import your Better Auth hook directly from your client configuration
+import { useSession } from "@/lib/auth-client";
+
 export default function AddTutorPage() {
   const [loading, setLoading] = useState(false);
-  const router = useRouter(); // Initialize the router
+  const router = useRouter();
+  
+  // ✅ Extract the real authenticated user session metadata
+  const { data: session, isPending: isAuthPending } = useSession();
 
   const {
     register,
@@ -26,27 +32,40 @@ export default function AddTutorPage() {
     reset,
   } = useForm();
 
-  // TEMP USER
-  const user = {
-    name: "Kashfia Meherin",
-    email: "kashfia@gmail.com",
-  };
-
   const onSubmit = async (data) => {
+    if (!session?.user?.email) {
+      toast.error("You must be logged in to list a tutor profile.");
+      return;
+    }
+
     setLoading(true);
 
-    // Explicitly parse numbers so they store correctly in your DB and sort/display properly on your tutors page
+    // Explicitly parse numbers and harmonize keys to match UpdateModal/Backend fields precisely
     const tutorData = {
-      ...data,
+      name: data.name,
+      image: data.image,
+      specialty: data.specialty,
+      language: data.language || "English", // Clean baseline default
+      availableDays: data.availableDays,    // Matches 'availableDays' across components
       price: parseInt(data.price) || 0,
       totalSlot: parseInt(data.totalSlot) || 0,
+      sessionDate: data.sessionDate,        // Normalized field key naming
+      experience: data.experience,
+      location: data.location,
+      teachingMode: data.teachingMode,      // Matches 'teachingMode' across components
+      description: data.description,
       booked: 0,
-      tutorEmail: user.email,
-      tutorProvider: user.name,
+      
+      // ✅ Save it into 'email' so your My Tutors fetch matching filter can find it!
+      email: session.user.email,
+      
+      // Keep your display meta properties intact for other sections of your site
+      tutorEmail: session.user.email,
+      tutorProvider: session.user.name || "Anonymous User",
     };
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tutors`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/tutors`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -55,30 +74,46 @@ export default function AddTutorPage() {
       });
 
       if (res.ok) {
-        const result = await res.json();
-        console.log(result);
-
-        // ✅ Success Toast Notification
-        toast.success("Tutor Profile Created Successfully!");
-        
+        toast.success("Tutor Profile Created Successfully! 🎉");
         reset();
         
         // Wait 1.5 seconds so the user can see the success toast before redirecting
         setTimeout(() => {
-          router.push("/tutors");
+          router.push("/my-tutor"); // Redirect directly to your My Tutors panel to see it appear!
         }, 1500);
       } else {
-        // ❌ Error Toast for bad server responses (like 404 or 500)
         toast.error("Failed to save data. Please check your backend.");
       }
     } catch (error) {
       console.error(error);
-      // ❌ Error Toast for network errors / server offline
       toast.error("Something went wrong. Is your server running?");
     } finally {
       setLoading(false);
     }
   };
+
+  // Prevent form render flashing while Better Auth verifies cookies/tokens
+  if (isAuthPending) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-3">
+        <Spinner size="lg" color="cyan" />
+        <p className="text-sm text-default-400 font-medium">Verifying authorization access...</p>
+      </div>
+    );
+  }
+
+  // Prevent unauthenticated submissions completely
+  if (!session) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
+        <h3 className="text-xl font-bold text-rose-500">Access Denied</h3>
+        <p className="text-sm text-default-400 mt-1 max-w-xs">
+          Please log into your MediQueue account to publish public tutoring profile records.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <section className="min-h-screen py-24 bg-gradient-to-b from-cyan-50 to-white dark:from-black dark:to-slate-950">
       <div className="max-w-5xl mx-auto px-4 lg:px-8">
@@ -103,7 +138,7 @@ export default function AddTutorPage() {
             className="grid grid-cols-1 md:grid-cols-2 gap-8"
           >
             {/* Tutor Name */}
-            <div>
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Tutor Name</label>
               <div className="relative mt-3">
                 <FaUserGraduate className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
@@ -118,7 +153,7 @@ export default function AddTutorPage() {
             </div>
 
             {/* Image */}
-            <div>
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Photo URL</label>
               <div className="relative mt-3">
                 <FaImage className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
@@ -133,7 +168,7 @@ export default function AddTutorPage() {
             </div>
 
             {/* Subject Dropdown */}
-            <div>
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Subject</label>
               <div className="relative mt-3">
                 <FaBookOpen className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500 z-10" />
@@ -153,8 +188,23 @@ export default function AddTutorPage() {
               </div>
             </div>
 
-            {/* Availability */}
-            <div>
+            {/* Language */}
+            <div className="text-left">
+              <label className="font-semibold text-black dark:text-white">Language</label>
+              <div className="relative mt-3">
+                <FaBookOpen className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
+                <input
+                  type="text"
+                  placeholder="English, Bangla"
+                  required
+                  {...register("language")}
+                  className="w-full h-14 pl-14 pr-5 rounded-2xl border border-black/10 dark:border-white/10 bg-transparent outline-none text-black dark:text-white"
+                />
+              </div>
+            </div>
+
+            {/* Availability - FIXED KEY */}
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Available Days & Time</label>
               <div className="relative mt-3">
                 <FaClock className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
@@ -162,14 +212,14 @@ export default function AddTutorPage() {
                   type="text"
                   placeholder="Sun - Thu 5PM - 8PM"
                   required
-                  {...register("availability")}
+                  {...register("availableDays")}
                   className="w-full h-14 pl-14 pr-5 rounded-2xl border border-black/10 dark:border-white/10 bg-transparent outline-none text-black dark:text-white"
                 />
               </div>
             </div>
 
             {/* Price */}
-            <div>
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Hourly Fee ($)</label>
               <div className="relative mt-3">
                 <FaDollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
@@ -185,7 +235,7 @@ export default function AddTutorPage() {
             </div>
 
             {/* Total Slot */}
-            <div>
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Total Slots</label>
               <div className="relative mt-3">
                 <FaLayerGroup className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
@@ -200,22 +250,22 @@ export default function AddTutorPage() {
               </div>
             </div>
 
-            {/* Start Date */}
-            <div>
+            {/* Start Date - FIXED KEY */}
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Session Start Date</label>
               <div className="relative mt-3">
                 <FaCalendarAlt className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
                 <input
                   type="date"
                   required
-                  {...register("startDate")}
+                  {...register("sessionDate")}
                   className="w-full h-14 pl-14 pr-5 rounded-2xl border border-black/10 dark:border-white/10 bg-transparent outline-none text-gray-500 dark:text-gray-400"
                 />
               </div>
             </div>
 
             {/* Experience */}
-            <div>
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Experience</label>
               <div className="relative mt-3">
                 <FaClock className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
@@ -230,7 +280,7 @@ export default function AddTutorPage() {
             </div>
 
             {/* Location */}
-            <div>
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Location</label>
               <div className="relative mt-3">
                 <FaMapMarkerAlt className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500" />
@@ -244,14 +294,14 @@ export default function AddTutorPage() {
               </div>
             </div>
 
-            {/* Class Type Dropdown */}
-            <div>
+            {/* Teaching Mode Dropdown - FIXED KEY */}
+            <div className="text-left">
               <label className="font-semibold text-black dark:text-white">Teaching Mode</label>
               <div className="relative mt-3">
                 <FaLayerGroup className="absolute left-5 top-1/2 -translate-y-1/2 text-cyan-500 z-10" />
                 <select
                   required
-                  {...register("classType")}
+                  {...register("teachingMode")}
                   className="w-full h-14 pl-14 pr-5 rounded-2xl border border-black/10 dark:border-white/10 bg-transparent outline-none appearance-none text-black dark:text-white dark:bg-slate-900"
                 >
                   <option value="" className="dark:bg-slate-900">Select Mode</option>
@@ -263,7 +313,7 @@ export default function AddTutorPage() {
             </div>
 
             {/* Description */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 text-left">
               <label className="font-semibold text-black dark:text-white">Description</label>
               <textarea
                 rows={5}
