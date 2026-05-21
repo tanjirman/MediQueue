@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/shared/Navbar";
 import { Providers } from "./providers";
 import Footer from "@/components/shared/Footer";
+import { Toaster } from "react-hot-toast";
 
 
 const jakartaSans = Plus_Jakarta_Sans({
@@ -33,6 +34,18 @@ export default function RootLayout({ children }) {
       <body className={`${jakartaSans.variable} ${outfit.variable} min-h-full flex flex-col bg-background text-foreground`}>
         <Providers>
           <Navbar/>
+          <Toaster 
+          position="top-center" 
+          reverseOrder={false} 
+          toastOptions={{
+            // Optional: You can style all your toasts globally here
+            duration: 3000,
+            style: {
+              background: '#333',
+              color: '#fff',
+            },
+          }}
+        />
         <main> {children}</main>
         <Footer/>
         </Providers>

@@ -22,7 +22,7 @@ export default function TutorsPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/tutors")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tutors`)
       .then((res) => res.json())
       .then((data) => {
         setTutors(data);

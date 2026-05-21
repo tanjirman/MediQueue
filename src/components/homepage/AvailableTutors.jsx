@@ -25,7 +25,7 @@ export default function AvailableTutors() {
 
   useEffect(() => {
 
-    fetch("http://localhost:5000/featured-tutors")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/featured-tutors`)
       .then((res) => res.json())
       .then((data) => {
 
@@ -80,7 +80,7 @@ export default function AvailableTutors() {
 
             <div
               key={tutor._id}
-              className="group relative overflow-hidden rounded-[32px] bg-linear-to-b from-white to-cyan-50 dark:from-white/5 dark:to-white/[0.03] border border-black/5 dark:border-white/10 shadow-xl hover:-translate-y-3 transition-all duration-500"
+              className="group relative overflow-hidden rounded-[32px] bg-linear-to-b from-white to-cyan-50 dark:from-white/5 dark:to-white/3 border border-black/5 dark:border-white/10 shadow-xl hover:-translate-y-3 transition-all duration-500"
             >
 
               {/* IMAGE */}
