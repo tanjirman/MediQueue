@@ -16,7 +16,7 @@ export default function MyBookingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookingIdToCancel, setBookingIdToCancel] = useState(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ;
 
   useEffect(() => {
     if (isAuthPending) return;

@@ -40,7 +40,7 @@ export function UpdateTutorModal({ tutor, setTutors, onClose }) {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/tutors/${_id}`,
+        `${process.env.NEXT_PUBLIC_API_URL }/tutors/${_id}`,
         {
           method: "PATCH",
           headers: { "content-type": "application/json" },

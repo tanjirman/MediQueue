@@ -56,7 +56,7 @@ export default function AddTutorPage() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/tutors`,
+        `${process.env.NEXT_PUBLIC_API_URL }/tutors`,
         {
           method: "POST",
           headers: {
