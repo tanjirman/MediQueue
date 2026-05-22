@@ -2,26 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
 import { useForm } from "react-hook-form";
-
-import { authClient } from "@/lib/auth-client";
-
 import toast from "react-hot-toast";
-
 import { Button } from "@heroui/react";
-
-import {
-  FaEnvelope,
-  FaLock,
-  FaArrowRight,
-  FaGraduationCap,
-} from "react-icons/fa";
-
+import { FaEnvelope, FaLock, FaArrowRight, FaGraduationCap } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 
-export default function LoginPage() {
+// FIX: Import 'token' along with 'signIn'
+import { signIn, token, authClient } from "@/lib/auth-client";
 
+export default function LoginPage() {
   const router = useRouter();
 
   const {
@@ -31,41 +21,32 @@ export default function LoginPage() {
   } = useForm();
 
   const onSubmit = async (data) => {
-
     try {
-
-      const res = await authClient.signIn.email({
-
+      // 1. Attempt Sign In
+      const res = await signIn.email({
         email: data.email,
-
         password: data.password,
-
-        callbackURL: "/",
       });
 
-      const { data: tokenData } = await authClient.token();
-
-      console.log(tokenData);
-
+      // 2. Check for success
       if (res?.error) {
-
         toast.error(res.error.message || "Login Failed!");
-
         return;
       }
 
+      // 3. Retrieve token securely
+      const { data: tokenData, error } = await token.get();
+      
+      if (error) {
+        console.error("Could not retrieve token:", error);
+      } else {
+        console.log("Token successfully retrieved:", tokenData);
+      }
+
       toast.success("Welcome Back To MediQueue 🎉");
-
-      setTimeout(() => {
-
-        router.push("/");
-
-      }, 1500);
-
+      router.push("/");
     } catch (error) {
-
-      console.log(error);
-
+      console.error(error);
       toast.error("Something went wrong!");
     }
   };

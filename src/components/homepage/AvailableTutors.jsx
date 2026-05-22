@@ -11,7 +11,7 @@ export default function AvailableTutors() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/featured-tutors`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tutors`)
       .then((res) => {
         if (!res.ok) throw new Error("Network collection query rejected");
         return res.json();
