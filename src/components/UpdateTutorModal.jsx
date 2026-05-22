@@ -174,7 +174,7 @@ export function UpdateTutorModal({ tutor, setTutors, onClose }) {
               <Button type="button" variant="secondary" onClick={onClose} disabled={updating}>
                 Cancel
               </Button>
-              <Button form="update-tutor-form" type="submit" isLoading={updating} className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold">
+              <Button form="update-tutor-form" type="submit" isLoading={updating} className="bg-linear-to-r from-cyan-500 to-blue-600 text-white font-semibold">
                 Save Profile Changes
               </Button>
             </Modal.Footer>

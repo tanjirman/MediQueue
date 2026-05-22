@@ -24,21 +24,27 @@ export function DeleteTutorModal({ tutor, setTutors, onClose }) {
 
       const data = await res.json();
 
-      if (res.ok && data.success) {
+      // Explicit validation alignment for MongoDB acknowledge payloads
+      if (res.ok && (data.deletedCount > 0 || data.success)) {
         toast.success("Tutor profile removed successfully! 🗑️");
 
-        // Optimistically remove the deleted tutor from client-side state mapping arrays immediately
-        if (setTutors) {
+        // 1. If we are on a list view page managing an array:
+        if (typeof setTutors === "function") {
           setTutors((prev) => prev.filter((item) => item._id !== _id));
         }
 
-        router.refresh();
         onClose(); // Shut down the modal view container safely
+        
+        // 2. Force Next.js router to refresh cached server data tables
+        router.refresh();
+
+        // 3. If on a single details page, push the user away to prevent viewing dead cache records
+        router.push("/tutors"); 
       } else {
         toast.error(data.message || "Deletion transaction refused by database.");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Delete structural failure:", err);
       toast.error("Network communication failure. Is the server online?");
     } finally {
       setDeleting(false);
@@ -46,7 +52,6 @@ export function DeleteTutorModal({ tutor, setTutors, onClose }) {
   };
 
   return (
-    // Controlled warning overlay bound cleanly to parent tracking state toggles
     <AlertDialog isOpen={true} onOpenChange={onClose}>
       <AlertDialog.Backdrop className="backdrop-blur-sm">
         <AlertDialog.Container>
@@ -71,8 +76,8 @@ export function DeleteTutorModal({ tutor, setTutors, onClose }) {
               <Button 
                 type="button"
                 variant="tertiary" 
-                onClick={onClose} 
-                disabled={deleting}
+                onPress={onClose}            
+                isDisabled={deleting}        
                 className="rounded-xl font-bold"
               >
                 Cancel
@@ -82,7 +87,7 @@ export function DeleteTutorModal({ tutor, setTutors, onClose }) {
                 type="button"
                 variant="danger" 
                 isLoading={deleting}
-                onClick={handleDelete}
+                onPress={handleDelete}       
                 className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl px-5"
               >
                 Delete Profile

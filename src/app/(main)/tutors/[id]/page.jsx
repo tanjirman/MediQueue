@@ -1,208 +1,178 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
+import BookingModal from "@/components/BookingModal";
+import { useOverlayState, Button } from "@heroui/react";
+import Image from "next/image";
 import toast from "react-hot-toast";
-import { FaCalendarAlt, FaClock, FaDollarSign, FaMapMarkerAlt, FaChevronLeft } from "react-icons/fa";
-import BookingModal from "@/components/BookingModal"; 
-import { Button, useOverlayState } from "@heroui/react";
 
-export default function TutorDetailsPage({ params: paramsPromise }) {
-  const params = use(paramsPromise);
+export default function TutorDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
-  
-  // HeroUI v3 State Controller for handling Modals
-  const modalState = useOverlayState(); 
-  
+  const modal = useOverlayState();
+
+  const { data: session, isPending } = useSession();
   const [tutor, setTutor] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Simulated authenticated active user session data
-  const currentUser = {
-    name: "Kashfia Meherin",
-    email: "kashfia@gmail.com",
-  };
-
   useEffect(() => {
-    fetch(`http://localhost:5000/tutors/${id}`)
-      .then((res) => res.json())
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/tutors/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        return res.json();
+      })
       .then((data) => {
         setTutor(data);
         setLoading(false);
       })
       .catch((err) => {
         console.error(err);
-        toast.error("Failed to load tutor profiles.");
+        toast.error("Failed to load tutor details");
         setLoading(false);
       });
   }, [id]);
 
-  if (loading) {
+  if (loading || isPending) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
-        <p className="text-xl font-bold text-cyan-500 animate-pulse">Loading Tutor Details...</p>
+      <div className="min-h-[50vh] flex items-center justify-center text-sm font-medium text-default-500">
+        Loading tutor profile details...
       </div>
     );
   }
 
   if (!tutor) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950">
-        <p className="text-xl text-default-500 mb-4">Tutor record not found.</p>
-        <Button onClick={() => router.push("/tutors")} className="bg-cyan-500 text-white rounded-xl">
-          Go Back
-        </Button>
+      <div className="min-h-[50vh] flex items-center justify-center text-sm font-medium text-red-500">
+        Tutor profile not found.
       </div>
     );
   }
 
-  // --- REQUIREMENT RULES EVALUATION ---
-  const currentDate = new Date();
-  // Using tutor.sessionDate to match your server's schema property
-  const sessionStartDate = new Date(tutor.sessionDate || tutor.startDate);
+  // ================= ASSIGNMENT VALIDATION RULES =================
+  const totalSlot = Number(tutor?.totalSlot ?? 0);
   
-  // 1. Session Date Restriction Check (Today must be >= the release/start date)
-  const isBookingDateValid = currentDate >= sessionStartDate;
+  // Aligning with requirement parameter key: "sessionStartDate"
+  const sessionDateValue = tutor?.sessionStartDate;
+  const targetSessionDate = sessionDateValue ? new Date(sessionDateValue) : null;
+  const currentDate = new Date();
+  
+  // Rule 1: Booking blocks if date is earlier than sessionStartDate
+  const isBookingAvailableYet = targetSessionDate ? currentDate >= targetSessionDate : true;
+  
+  // Rule 2: Booking blocks if slots are 0
+  const hasSlotsAvailable = totalSlot > 0;
 
-  // 2. Total Slot Availability Check
-  const isSlotsAvailable = tutor.totalSlot > 0;
+  // Handle formatted availability text string safely
+  const availability =
+    typeof tutor.availableDays === "string"
+      ? tutor.availableDays
+      : "Flexible hours";
 
-  // 3. Overall validation flag checking both conditions
-  const isBookingAllowed = isSlotsAvailable && isBookingDateValid;
-
-  const handleBookingTrigger = () => {
-    // Check condition 1: Slot check guard
-    if (!isSlotsAvailable) {
-      toast.error("This session is fully booked. You can't join at the moment.");
+  // ================= BOOKING SUBMIT TRIGGER =================
+  const handleBookingPress = () => {
+    // 1. Enforce Slot Limit Safeguard Block
+    if (!hasSlotsAvailable) {
+      toast.error("No available slots left. This session is fully booked!");
       return;
     }
-    
-    // Check condition 2: Date threshold guard
-    if (!isBookingDateValid) {
+
+    // 2. Enforce Session Date Guard Block
+    if (!isBookingAvailableYet) {
       toast.error("Booking is not available yet for this tutor.");
       return;
     }
-    
-    // Open the HeroUI dynamic form modal if all rules pass successfully
-    modalState.open(); 
+
+    // Pass verification gates -> Launch configuration booking view modal
+    modal.open();
   };
 
   return (
-    <section className="min-h-screen py-24 bg-gradient-to-b from-cyan-50 to-white dark:from-black dark:to-slate-950">
-      <div className="max-w-4xl mx-auto px-4 lg:px-8">
-        
-        <Button 
-          onClick={() => router.push("/tutors")}
-          variant="light" 
-          className="mb-8 text-default-600 font-medium rounded-xl gap-2 hover:text-cyan-500"
-        >
-          <FaChevronLeft size={12} /> Back to Tutors
-        </Button>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {tutor.image && (
+        <div className="relative w-full h-[320px] md:h-[400px] overflow-hidden rounded-2xl border border-black/5">
+          <Image
+            src={tutor.image}
+            fill
+            priority
+            className="object-cover"
+            alt={tutor.name || "Tutor"}
+          />
+        </div>
+      )}
 
-        <div className="bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-2xl rounded-[40px] overflow-hidden">
-          {/* Header Image Banner */}
-          <div className="relative h-64 md:h-80 w-full bg-slate-200 dark:bg-slate-800">
-            <img src={tutor.image} alt={tutor.name} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute bottom-8 left-8 md:left-12 text-white">
-              <span className="px-3 py-1 bg-cyan-500 text-xs font-bold rounded-full uppercase tracking-wider mb-3 inline-block">
-                {tutor.specialty}
-              </span>
-              <h1 className="text-3xl md:text-5xl font-black">{tutor.name}</h1>
-            </div>
-          </div>
+      <div className="text-left space-y-2">
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          {tutor.name}
+        </h1>
+        {tutor.specialty && (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+            {tutor.specialty}
+          </span>
+        )}
+        <p className="text-sm leading-relaxed text-default-500 mt-2">
+          {tutor.description || "No descriptions overview details published yet."}
+        </p>
+      </div>
 
-          <div className="p-8 md:p-12 space-y-8">
-            {/* Info Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-default-700 dark:text-default-300">
-              <div className="flex items-center gap-4 p-4 rounded-2xl border border-black/5 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50">
-                <FaDollarSign className="text-cyan-500 text-2xl shrink-0" />
-                <div>
-                  <p className="text-xs text-default-400 font-semibold uppercase">Hourly Fee</p>
-                  <p className="text-lg font-bold text-black dark:text-white">${tutor.price} / hr</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 rounded-2xl border border-black/5 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50">
-                <FaClock className="text-cyan-500 text-2xl shrink-0" />
-                <div>
-                  <p className="text-xs text-default-400 font-semibold uppercase">Availability</p>
-                  <p className="text-sm font-bold text-black dark:text-white">{tutor.availability}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 rounded-2xl border border-black/5 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50">
-                <FaMapMarkerAlt className="text-cyan-500 text-2xl shrink-0" />
-                <div>
-                  <p className="text-xs text-default-400 font-semibold uppercase">Location Mode</p>
-                  <p className="text-sm font-bold text-black dark:text-white">{tutor.location}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 rounded-2xl border border-black/5 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50">
-                <FaCalendarAlt className="text-cyan-500 text-2xl shrink-0" />
-                <div>
-                  <p className="text-xs text-default-400 font-semibold uppercase">Available Slots Left</p>
-                  <p className={`text-lg font-black ${isSlotsAvailable ? "text-emerald-500" : "text-rose-500"}`}>
-                    {isSlotsAvailable ? `${tutor.totalSlot} Slots` : "No available slots left."}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Biography */}
-            <div className="border-t border-black/5 dark:border-white/10 pt-8">
-              <h3 className="text-xl font-bold text-black dark:text-white mb-3">Tutor Description</h3>
-              <p className="text-default-600 leading-relaxed whitespace-pre-line">{tutor.description}</p>
-            </div>
-
-            {/* Requirements Alerts Logic Blocks */}
-            <div className="border-t border-black/5 dark:border-white/10 pt-8 flex flex-col gap-4">
-              
-              {/* Alert 1: Show message if date is earlier than session start date */}
-              {!isBookingDateValid && isSlotsAvailable && (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-sm font-semibold rounded-2xl text-center">
-                  ⚠️ Booking is not available yet for this tutor. (Starts on: {tutor.sessionDate || tutor.startDate})
-                </div>
-              )}
-
-              {/* Alert 2: Show message if totalSlot reaches 0 */}
-              {!isSlotsAvailable && (
-                <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm font-semibold rounded-2xl text-center">
-                  🚫 This session is fully booked. You can’t join at the moment.
-                </div>
-              )}
-
-              {/* BOOK SESSION ACTION BUTTON */}
-              <Button
-                onClick={handleBookingTrigger}
-                // ✅ FIXED: Button is disabled if bookings are not allowed yet
-                disabled={!isBookingAllowed}
-                className={`w-full h-14 rounded-2xl text-lg font-bold text-white shadow-lg transition-all ${
-                  isBookingAllowed
-                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 cursor-pointer"
-                    : "bg-default-300 dark:bg-neutral-800 cursor-not-allowed opacity-50"
-                }`}
-              >
-                {!isSlotsAvailable 
-                  ? "Fully Booked" 
-                  : !isBookingDateValid 
-                  ? "Booking Unavailable" 
-                  : "Book Session Now"}
-              </Button>
-            </div>
-          </div>
+      {/* CORE DETAILS MATRIX METRICS */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-y border-default-100 py-4 text-left">
+        <div>
+          <span className="text-xs font-semibold text-default-400 block uppercase tracking-wider">Hourly Rate</span>
+          <span className="text-xl font-bold text-slate-800 dark:text-white">${tutor.price}/hr</span>
+        </div>
+        <div>
+          <span className="text-xs font-semibold text-default-400 block uppercase tracking-wider">Hours & Availability</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-default-300">{availability}</span>
+        </div>
+        <div>
+          <span className="text-xs font-semibold text-default-400 block uppercase tracking-wider">Available Capacity</span>
+          <span className={`text-sm font-bold ${hasSlotsAvailable ? "text-emerald-600" : "text-rose-500"}`}>
+            {hasSlotsAvailable ? `${totalSlot} slots left` : "No available slots left"}
+          </span>
         </div>
       </div>
 
-      {/* HeroUI v3 Compound Props Modal Bridge */}
-      <BookingModal 
-        state={modalState} 
-        tutor={tutor} 
+      {/* ASSIGNMENT REQUIREMENTS VISUAL WARNING FEEDBACK FLAGS */}
+      <div className="space-y-2 text-left">
+        {!isBookingAvailableYet && (
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl text-xs font-medium">
+            ⚠️ Booking is not available yet for this tutor. (Starts: {new Date(sessionDateValue).toLocaleDateString()})
+          </div>
+        )}
+
+        {!hasSlotsAvailable && (
+          <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-xl text-xs font-medium">
+            🚫 This session is fully booked. You can not join at the moment.
+          </div>
+        )}
+      </div>
+
+      {/* 🌟 FIXED ACTION BUTTON: Changed from permanent deletion to strict Book Session conditional layout */}
+      <Button
+        onPress={handleBookingPress}
+        isDisabled={!hasSlotsAvailable || !isBookingAvailableYet}
+        className={`w-full font-bold h-12 rounded-xl text-sm transition-all shadow-md ${
+          hasSlotsAvailable && isBookingAvailableYet
+            ? "bg-linear-to-r from-emerald-500 to-teal-600 text-white hover:opacity-90"
+            : "bg-default-200 text-default-400 cursor-not-allowed"
+        }`}
+      >
+        {!hasSlotsAvailable 
+          ? "Fully Booked" 
+          : !isBookingAvailableYet 
+            ? "Booking Not Available Yet" 
+            : "Book Session"}
+      </Button>
+
+      {/* COMPLIANT INTERACTIVE BOOKING CONTEXT MODAL */}
+      <BookingModal
+        state={modal}
+        tutor={tutor}
         setTutor={setTutor}
-        user={currentUser}
+        user={session?.user || { name: "Kashfia Meherin", email: "kashfia@gmail.com" }}
       />
-    </section>
+    </div>
   );
 }

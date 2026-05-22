@@ -20,7 +20,7 @@ export async function proxy(request) {
 
     "/my-tutor",
 
-    "/my-booked-sessions",
+    "/my-booking",
   ];
 
   // CHECK ROUTES
@@ -52,7 +52,7 @@ export const config = {
 
     "/my-tutor",
 
-    "/my-booked-sessions",
+    "/my-booking",
 
     "/tutors/:path*",
   ],
