@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
-import { Spinner, Button } from "@heroui/react";
+import { Spinner, Button, AlertDialog } from "@heroui/react";
 import toast from "react-hot-toast";
 import { FaBookmark, FaLock, FaBan } from "react-icons/fa";
 
@@ -11,22 +11,21 @@ export default function MyBookingPage() {
   const [bookings, setBookings] = useState([]);
   const [fetchingData, setFetchingData] = useState(true);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [bookingToCancel, setBookingToCancel] = useState(null);
+  
+  // 🌟 Controlled modal state context pointers
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [bookingIdToCancel, setBookingIdToCancel] = useState(null);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
-    // 1️⃣ Halt processing while authentication resolution is still pending
     if (isAuthPending) return;
 
     let isMounted = true;
 
     const loadBookings = async () => {
-      // 🌟 FIX: Checked safely inside the async execution frame to avoid cascading render conflicts
       if (!session?.user?.email) {
-        if (isMounted) {
-          setFetchingData(false);
-        }
+        if (isMounted) setFetchingData(false);
         return;
       }
 
@@ -48,9 +47,7 @@ export default function MyBookingPage() {
           toast.error("Failed to load your personal booked sessions.", { id: loadToast });
         }
       } finally {
-        if (isMounted) {
-          setFetchingData(false);
-        }
+        if (isMounted) setFetchingData(false);
       }
     };
 
@@ -60,47 +57,53 @@ export default function MyBookingPage() {
       isMounted = false;
     };
   }, [session, isAuthPending, apiUrl]);
-  // Native Browser Confirmation Dialog for Cancellation Action
-  const handleCancelBooking = async (bookingId) => {
-    const confirmation = window.confirm(
-      "Are you absolutely certain you want to cancel this booking appointment slot? This will update your enrollment status inside the system database securely."
-    );
-    
-    if (!confirmation) return;
 
-    setBookingToCancel(bookingId);
+  // 🎯 Trigger cancellation modal
+  const triggerCancelDialog = (bookingId) => {
+    setBookingIdToCancel(bookingId);
+    setIsModalOpen(true);
+  };
+
+  // 🎯 Close cancellation modal safely
+  const closeCancelDialog = () => {
+    if (cancelLoading) return; 
+    setIsModalOpen(false);
+    setBookingIdToCancel(null);
+  };
+
+  // 🎯 Database operation confirmed callback hook
+  const handleConfirmCancellation = async () => {
+    if (!bookingIdToCancel) return;
+
     setCancelLoading(true);
     const cancelToast = toast.loading("Processing appointment cancellation...");
     
     try {
-      const res = await fetch(`${apiUrl}/bookings/cancel/${bookingId}`, {
+      const res = await fetch(`${apiUrl}/bookings/cancel/${bookingIdToCancel}`, {
         method: "PATCH",
       });
 
-      const result = await res.json();
+      if (!res.ok) throw new Error("Server rejected state transformation.");
 
-      if (res.ok && result.modifiedCount > 0) {
-        toast.success("Appointment slot cancelled successfully. 🗑️", { id: cancelToast });
-        
-        // Instant visual local state mutation mapping updates row dynamically without refresh
-        setBookings((prev) =>
-          prev.map((b) =>
-            b._id === bookingId ? { ...b, bookingStatus: "Cancelled" } : b
-          )
-        );
-      } else {
-        toast.error(result.message || "Server declined appointment modification.", { id: cancelToast });
-      }
+      toast.success("Appointment slot cancelled successfully. 🗑️", { id: cancelToast });
+      
+      // ✨ INSTANT BADGE RE-RENDERING FROM "BOOKED" TO "CANCELLED"
+      setBookings((prev) =>
+        prev.map((b) =>
+          b._id === bookingIdToCancel ? { ...b, bookingStatus: "Cancelled" } : b
+        )
+      );
+      
+      setIsModalOpen(false);
+      setBookingIdToCancel(null);
     } catch (err) {
       console.error("Cancellation transmission failure:", err);
-      toast.error("Network interface connection error.", { id: cancelToast });
+      toast.error("Could not complete cancellation request.", { id: cancelToast });
     } finally {
       setCancelLoading(false);
-      setBookingToCancel(null);
     }
   };
 
-  // Safe rendering guards
   const currentlyLoading = isAuthPending || (session?.user?.email && fetchingData && bookings.length === 0);
 
   if (currentlyLoading) {
@@ -111,7 +114,6 @@ export default function MyBookingPage() {
     );
   }
 
-  // Guard Clause: Unauthenticated Block
   if (!session?.user) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyan-50 to-white dark:from-black dark:to-slate-950 px-4">
@@ -164,8 +166,8 @@ export default function MyBookingPage() {
               <tbody>
                 {bookings.map((booking) => {
                   const currentStatus = booking.bookingStatus || "Booked";
-                  const isCancelled = currentStatus.toLowerCase() === "cancelled";
-                  const isThisRowLoading = cancelLoading && bookingToCancel === booking._id;
+                  const isCancelled = String(currentStatus).toLowerCase() === "cancelled";
+                  const isThisRowLoading = cancelLoading && bookingIdToCancel === booking._id;
 
                   return (
                     <tr 
@@ -193,7 +195,7 @@ export default function MyBookingPage() {
 
                       <td className="p-5 text-center">
                         <span 
-                          className={`px-4 py-1.5 text-xs font-black rounded-full border uppercase tracking-wider ${
+                          className={`px-4 py-1.5 text-xs font-black rounded-full border uppercase tracking-wider transition-all duration-300 ${
                             isCancelled 
                               ? "bg-rose-500/10 text-rose-500 border-rose-500/20" 
                               : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
@@ -208,13 +210,11 @@ export default function MyBookingPage() {
                           size="sm"
                           color="danger"
                           variant="flat"
-                          disabled={isCancelled || cancelLoading}
+                          disabled={isCancelled}
                           isLoading={isThisRowLoading}
                           startContent={!isThisRowLoading && <FaBan />}
-                          onPress={() => handleCancelBooking(booking._id)}
-                          className={`font-bold rounded-xl px-4 ${
-                            isCancelled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""
-                          }`}
+                          onPress={() => triggerCancelDialog(booking._id)}
+                          className="font-bold rounded-xl px-4 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           {isCancelled ? "Cancelled" : "Cancel"}
                         </Button>
@@ -226,6 +226,46 @@ export default function MyBookingPage() {
             </table>
           </div>
         )}
+
+        {/* 🌟 FIXED HEROUI CONTROLLED DIALOG FLOW */}
+        {isModalOpen && (
+          <AlertDialog.Backdrop isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+            <AlertDialog.Container>
+              <AlertDialog.Dialog className="sm:max-w-[420px] border border-black/5 dark:border-white/10 bg-white dark:bg-slate-950 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200">
+                <AlertDialog.Header className="flex items-center gap-3 text-left">
+                  <AlertDialog.Icon status="danger" className="shrink-0" />
+                  <AlertDialog.Heading className="text-lg font-black text-slate-900 dark:text-white">
+                    Cancel Booking Slot?
+                    </AlertDialog.Heading>
+                </AlertDialog.Header>
+                <AlertDialog.Body className="py-2 text-left">
+                  <p className="text-sm text-default-500 leading-relaxed">
+                    Are you absolutely certain you want to cancel this booking appointment slot? This will update your enrollment status inside the system database securely.
+                  </p>
+                </AlertDialog.Body>
+                <AlertDialog.Footer className="gap-2 pt-4">
+                  <Button 
+                    variant="flat" 
+                    className="font-bold rounded-xl text-xs"
+                    onPress={closeCancelDialog}
+                    disabled={cancelLoading}
+                  >
+                    Keep Booking
+                  </Button>
+                  <Button 
+                    variant="danger" 
+                    className="font-bold rounded-xl text-xs bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all"
+                    isLoading={cancelLoading}
+                    onClick={handleConfirmCancellation}
+                  >
+                    Confirm Cancellation
+                  </Button>
+                </AlertDialog.Footer>
+              </AlertDialog.Dialog>
+            </AlertDialog.Container>
+          </AlertDialog.Backdrop>
+        )}
+
       </div>
     </section>
   );

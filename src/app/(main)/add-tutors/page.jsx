@@ -93,7 +93,7 @@ export default function AddTutorPage() {
   }
 
   return (
-    <section className="min-h-screen py-24 bg-gradient-to-b from-cyan-50 to-white dark:from-black dark:to-slate-950 text-left">
+    <section className="min-h-screen py-24 bg-linear-to-b from-cyan-50 to-white dark:from-black dark:to-slate-950 text-left">
       <div className="max-w-5xl mx-auto px-4 lg:px-8">
 
         {/* HEADER */}
@@ -300,7 +300,7 @@ export default function AddTutorPage() {
               <Button
                 type="submit"
                 isLoading={loading}
-                className="w-full h-14 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-lg font-bold"
+                className="w-full h-14 rounded-2xl bg-linear-to-r from-cyan-500 to-blue-600 text-white text-lg font-bold"
               >
                 Add Tutor
               </Button>

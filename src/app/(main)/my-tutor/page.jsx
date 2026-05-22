@@ -4,12 +4,10 @@ import { useState, useEffect } from "react";
 import { Button, Spinner } from "@heroui/react";
 import { BiEdit } from "react-icons/bi";
 import { FiTrash2 } from "react-icons/fi";
-// Import your better-auth client instance (adjust this path to match your auth client file)
 import { authClient } from "@/lib/auth-client"; 
 import { UpdateTutorModal } from "@/components/UpdateTutorModal";
 import { DeleteTutorModal } from "@/components/DeleteTutorModal";
-// import { UpdateTutorModal } from "./UpdateTutorModal"; 
-// import { DeleteTutorModal } from "./DeleteTutorModal";
+import Image from "next/image";
 
 export default function MyTutorsPage() {
   const [tutors, setTutors] = useState([]);
@@ -29,7 +27,8 @@ export default function MyTutorsPage() {
     const fetchMyTutors = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`http://localhost:5000/tutors?email=${userEmail}`);
+        
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tutors?email=${userEmail}`);
         if (res.ok) {
           const data = await res.json();
           setTutors(data);
@@ -98,9 +97,11 @@ export default function MyTutorsPage() {
             >
               <div className="flex items-center gap-4">
                 {tutor.image && (
-                  <img 
+                  <Image 
                     src={tutor.image} 
                     alt={tutor.name} 
+                    height={200}
+                    width={300}
                     className="w-14 h-14 rounded-full object-cover border-2 border-cyan-500/20"
                   />
                 )}

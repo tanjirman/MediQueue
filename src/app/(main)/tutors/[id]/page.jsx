@@ -53,16 +53,19 @@ export default function TutorDetailsPage() {
   // ================= ASSIGNMENT VALIDATION RULES =================
   const totalSlot = Number(tutor?.totalSlot ?? 0);
   
-  // Aligning with requirement parameter key: "sessionStartDate"
-  const sessionDateValue = tutor?.sessionStartDate;
+  // Checking both potential database naming structures safely
+  const sessionDateValue = tutor?.sessionDate || tutor?.sessionStartDate;
   const targetSessionDate = sessionDateValue ? new Date(sessionDateValue) : null;
   const currentDate = new Date();
   
-  // Rule 1: Booking blocks if date is earlier than sessionStartDate
+  // Rule 1: Date evaluation check (Has current date reached/crossed the session date?)
   const isBookingAvailableYet = targetSessionDate ? currentDate >= targetSessionDate : true;
   
-  // Rule 2: Booking blocks if slots are 0
+  // Rule 2: Slots availability check
   const hasSlotsAvailable = totalSlot > 0;
+
+  // 🎯 DYNAMIC STATUS BADGE LOGIC: Available only if current date crossed session date AND slots exist
+  const isTeacherAvailable = isBookingAvailableYet && hasSlotsAvailable;
 
   // Handle formatted availability text string safely
   const availability =
@@ -72,19 +75,16 @@ export default function TutorDetailsPage() {
 
   // ================= BOOKING SUBMIT TRIGGER =================
   const handleBookingPress = () => {
-    // 1. Enforce Slot Limit Safeguard Block
     if (!hasSlotsAvailable) {
       toast.error("No available slots left. This session is fully booked!");
       return;
     }
 
-    // 2. Enforce Session Date Guard Block
     if (!isBookingAvailableYet) {
       toast.error("Booking is not available yet for this tutor.");
       return;
     }
 
-    // Pass verification gates -> Launch configuration booking view modal
     modal.open();
   };
 
@@ -102,10 +102,25 @@ export default function TutorDetailsPage() {
         </div>
       )}
 
-      <div className="text-left space-y-2">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          {tutor.name}
-        </h1>
+      <div className="text-left space-y-3">
+        {/* TITLE AND STATUS BADGE ROW */}
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            {tutor.name}
+          </h1>
+          
+          {/* 🌟 STATUS BADGE */}
+          <span 
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+              isTeacherAvailable 
+                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+            }`}
+          >
+            {isTeacherAvailable ? "● Available" : "● Not Available"}
+          </span>
+        </div>
+
         {tutor.specialty && (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
             {tutor.specialty}
@@ -134,9 +149,9 @@ export default function TutorDetailsPage() {
         </div>
       </div>
 
-      {/* ASSIGNMENT REQUIREMENTS VISUAL WARNING FEEDBACK FLAGS */}
+      {/* REQUIREMENTS WARNING FEEDBACK FLAGS */}
       <div className="space-y-2 text-left">
-        {!isBookingAvailableYet && (
+        {!isBookingAvailableYet && sessionDateValue && (
           <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl text-xs font-medium">
             ⚠️ Booking is not available yet for this tutor. (Starts: {new Date(sessionDateValue).toLocaleDateString()})
           </div>
@@ -149,12 +164,12 @@ export default function TutorDetailsPage() {
         )}
       </div>
 
-      {/* 🌟 FIXED ACTION BUTTON: Changed from permanent deletion to strict Book Session conditional layout */}
+      {/* ACTION BOOKING BUTTON */}
       <Button
         onPress={handleBookingPress}
-        isDisabled={!hasSlotsAvailable || !isBookingAvailableYet}
+        isDisabled={!isTeacherAvailable}
         className={`w-full font-bold h-12 rounded-xl text-sm transition-all shadow-md ${
-          hasSlotsAvailable && isBookingAvailableYet
+          isTeacherAvailable
             ? "bg-linear-to-r from-emerald-500 to-teal-600 text-white hover:opacity-90"
             : "bg-default-200 text-default-400 cursor-not-allowed"
         }`}
@@ -166,7 +181,7 @@ export default function TutorDetailsPage() {
             : "Book Session"}
       </Button>
 
-      {/* COMPLIANT INTERACTIVE BOOKING CONTEXT MODAL */}
+      {/* BOOKING MODAL */}
       <BookingModal
         state={modal}
         tutor={tutor}
